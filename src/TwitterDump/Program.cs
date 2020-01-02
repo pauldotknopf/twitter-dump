@@ -41,6 +41,9 @@ namespace TwitterDump
             
             [Option('q', "query", Required = true)]
             public string Query { get; set; }
+            
+            [Option('p', "page-size", Default = 100)]
+            public int? PageSize { get; set; }
         }
 
         private static int Search(SearchOptions options)
@@ -55,7 +58,7 @@ namespace TwitterDump
             var headers = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(twitterDumpAuthFile));
             headers["accept-encoding"] = "UTF-8";
             
-            var tweets = Twitter.SearchTweets(options.Query, headers);
+            var tweets = Twitter.SearchTweets(options.Query, headers, options.PageSize);
             var tweetsJson = JsonConvert.SerializeObject(tweets, Formatting.Indented);
             
             if (options.Output == "stdout")
