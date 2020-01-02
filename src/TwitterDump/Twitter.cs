@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -13,8 +16,15 @@ namespace TwitterDump
 {
     public static class Twitter
     {
-        public static SearchResult SearchTweets(string query, Dictionary<string, string> headers)
+        public static SearchResult SearchTweets(string query, Dictionary<string, string> headers, int? pageSize, int? maxResults)
         {
+            if (pageSize == null)
+            {
+                pageSize = 100;
+            }
+            pageSize = Math.Max(pageSize.Value, 20);
+            pageSize = Math.Min(pageSize.Value, 100);
+            
             var uri = QueryHelpers.AddQueryString("https://api.twitter.com/2/search/adaptive.json",
                 new Dictionary<string, string>
                 {
@@ -40,7 +50,7 @@ namespace TwitterDump
                     {"send_error_codes", "true"},
                     {"simple_quoted_tweets", "true"},
                     {"tweet_search_mode", "live"},
-                    {"count", "20"},
+                    {"count", pageSize.ToString() },
                     {"query_source", "typed_query"},
                     {"pc", "1"},
                     {"spelling_corrections", "1"},
@@ -57,7 +67,7 @@ namespace TwitterDump
 
             while (!string.IsNullOrEmpty(cursor))
             {
-                Thread.Sleep(TimeSpan.FromSeconds(1));
+                Log.Logger.Information("Next {cursor}...", cursor);
                 var tmpResult = GetTweets(QueryHelpers.AddQueryString(uri, new Dictionary<string, string>
                     {
                         { "q", query },
@@ -82,6 +92,13 @@ namespace TwitterDump
                         result.Users.Add(user);
                     }
                 }
+                
+                Log.Logger.Information("Returned {returned} tweets ({total} total}", tmpResult.Tweets.Count, result.Tweets.Count);
+
+                if (maxResults.HasValue && result.Tweets.Count >= maxResults.Value)
+                {
+                    break;
+                }
             }
 
             result.Query = query;
@@ -104,15 +121,9 @@ namespace TwitterDump
                 {
                     http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
-  
-                var response = http.GetAsync(url).GetAwaiter()
-                    .GetResult();
-                var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new Exception(responseContent);
-                }
 
+                var responseContent = RetryGet(http, url);
+                
                 var dateTimeConverter = new IsoDateTimeConverter { DateTimeFormat = "ddd MMM dd HH:mm:ss zzzz yyyy" };
                 var deserializeSettings = new JsonSerializerSettings();
                 deserializeSettings.Converters.Add(dateTimeConverter);
@@ -166,14 +177,63 @@ namespace TwitterDump
 
                 if (hasEntries)
                 {
-                    Log.Logger.Information("Next {cursor}...", cursor);
+                    
                     nextCursor = cursor;
                 }
                 
-                Log.Logger.Information("Returned {tweetCount} tweets.", result.Tweets.Count);
-                
                 return result;
             }
+        }
+
+        private static string RetryGet(HttpClient client, string url)
+        {
+            string MakeRequest()
+            {
+                var response = client.GetAsync(url).GetAwaiter()
+                    .GetResult();
+                var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                if (!response.IsSuccessStatusCode)
+                {
+                    // {"errors":[{"message":"Over capacity","code":130}]}
+                    if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+                    {
+                        // This may be a result of "Over capacity, if it is, return NULL.
+                        var json = JsonConvert.DeserializeObject<List<dynamic>>(responseContent);
+                        if (json.Count == 1 && json[0].message != null & json[0].message == "Over capacity")
+                        {
+                            return null;
+                        }
+                    }
+                    
+                    Log.Logger.Error("Request exception {statusCode} {body}", response.StatusCode, responseContent);
+                    Environment.Exit(1);
+                }
+
+                return responseContent;
+            }
+
+            var count = 0;
+            while (count < 10)
+            {
+                var content = MakeRequest();
+
+                if (content == null)
+                {
+                    Log.Logger.Warning("Over capacity, retrying...");
+                    Thread.Sleep(1000);
+                }
+                else
+                {
+                    return content;
+                }
+                
+                count++;
+            }
+            
+            Log.Logger.Warning("Too many retries, failed connection!");
+            Environment.Exit(1);
+            
+            return null;
         }
     }
 }
