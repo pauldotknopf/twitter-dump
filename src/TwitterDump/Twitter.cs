@@ -84,6 +84,7 @@ namespace TwitterDump
                 }
             }
 
+            result.Query = query;
             return result;
         }
 

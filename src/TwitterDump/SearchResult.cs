@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace TwitterDump
 {
@@ -10,8 +11,13 @@ namespace TwitterDump
             Users = new List<User>();
         }
         
+        [JsonProperty("query")]
+        public string Query { get; set; }
+        
+        [JsonProperty("tweets")]
         public List<Tweet> Tweets { get; }
         
+        [JsonProperty("users")]
         public List<User> Users { get; }
     }
 }

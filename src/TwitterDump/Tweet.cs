@@ -5,7 +5,7 @@ namespace TwitterDump
 {
     public class Tweet : IEquatable<Tweet>
     {
-        [JsonProperty("id_str")]
+        [JsonProperty("id")]
         public ulong Id { get; set; }
 
         [JsonProperty("created_at")]

@@ -1,0 +1,11 @@
+<Project>
+    <Import Project="version.props" />
+    <PropertyGroup>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Authors>pauldotknopf</Authors>
+        <PackageDescription>A tool archiving tweets from Twitter.</PackageDescription>
+        <Summary>A tool archiving tweets from Twitter.</Summary>
+        <RepositoryUrl>https://github.com/pauldotknopf/twitter-dump</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/pauldotknopf/twitter-dump</PackageProjectUrl>
+    </PropertyGroup>
+</Project>
