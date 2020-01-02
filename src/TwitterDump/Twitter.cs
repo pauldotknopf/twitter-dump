@@ -16,7 +16,7 @@ namespace TwitterDump
 {
     public static class Twitter
     {
-        public static SearchResult SearchTweets(string query, Dictionary<string, string> headers, int? pageSize)
+        public static SearchResult SearchTweets(string query, Dictionary<string, string> headers, int? pageSize, int? maxResults)
         {
             if (pageSize == null)
             {
@@ -94,6 +94,11 @@ namespace TwitterDump
                 }
                 
                 Log.Logger.Information("Returned {returned} tweets ({total} total}", tmpResult.Tweets.Count, result.Tweets.Count);
+
+                if (maxResults.HasValue && result.Tweets.Count >= maxResults.Value)
+                {
+                    break;
+                }
             }
 
             result.Query = query;
