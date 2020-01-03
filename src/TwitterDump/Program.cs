@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using CommandLine;
 using Jint;
@@ -62,7 +63,11 @@ namespace TwitterDump
             headers["accept-encoding"] = "UTF-8";
             
             var tweets = Twitter.SearchTweets(options.Query, headers, options.PageSize, options.MaxResults);
-            var tweetsJson = JsonConvert.SerializeObject(tweets, Formatting.Indented);
+            var tweetsWithUrl = new SearchResult();
+            tweetsWithUrl.Query = tweets.Query;
+            tweetsWithUrl.Tweets.AddRange(tweets.Tweets.Select(x => new TweetWithUrl(x, tweets)));
+            tweetsWithUrl.Users.AddRange(tweets.Users);
+            var tweetsJson = JsonConvert.SerializeObject(tweetsWithUrl, Formatting.Indented);
             
             if (options.Output == "stdout")
             {

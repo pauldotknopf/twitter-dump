@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace TwitterDump
@@ -13,6 +14,9 @@ namespace TwitterDump
         
         [JsonProperty("full_text")]
         public string FullText { get; set; }
+        
+        [JsonProperty("user_id")]
+        public ulong UserId { get; set; }
         
         public bool Equals(Tweet other)
         {
@@ -33,6 +37,35 @@ namespace TwitterDump
         {
             // ReSharper disable once NonReadonlyMemberInGetHashCode
             return Id.GetHashCode();
+        }
+    }
+
+    public class TweetWithUrl : Tweet
+    {
+        private readonly SearchResult _result;
+
+        public TweetWithUrl(Tweet existing, SearchResult result)
+        {
+            Id = existing.Id;
+            CreatedAt = existing.CreatedAt;
+            FullText = existing.FullText;
+            UserId = existing.UserId;
+            _result = result;
+        }
+
+        [JsonProperty("url")]
+        public string Url
+        {
+            get
+            {
+                var user = _result.Users.FirstOrDefault(x => x.Id == UserId);
+                if (user == null)
+                {
+                    return null;
+                }
+
+                return $"https://twitter.com/{user.ScreenName}/status/{Id}";
+            }
         }
     }
 }
