@@ -104,7 +104,7 @@ namespace TwitterDump
             result.Query = query;
             return result;
         }
-
+        
         private static SearchResult GetTweets(string url, Dictionary<string, string> headers, out string nextCursor)
         {
             Log.Logger.Information("Requesting {url}..", url);
@@ -150,7 +150,20 @@ namespace TwitterDump
                             if (((string) entry.entryId).StartsWith("sq-I-t"))
                             {
                                 hasEntries = true;
-                                var tweetId = (string) entry.content.item.content.tweet.id;
+
+                                string tweetId = null;
+                                if (entry.content.item.content.tombstone != null)
+                                {
+                                    tweetId = (string)entry.content.item.content.tombstone.tweet.id;
+                                }else if (entry.content.item.content.tweet != null)
+                                {
+                                    tweetId = (string) entry.content.item.content.tweet.id;
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+                                
                                 var tweetData = (JObject)json.globalObjects.tweets[tweetId];
                                 if (tweetData == null)
                                 {
