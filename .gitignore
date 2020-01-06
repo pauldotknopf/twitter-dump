@@ -1,4 +1,4 @@
-.idea/
+
 # Created by https://www.gitignore.io/api/csharp
 # Edit at https://www.gitignore.io/?templates=csharp
 
@@ -73,6 +73,7 @@ StyleCopReport.xml
 *_p.c
 *_h.h
 *.ilk
+*.meta
 *.obj
 *.iobj
 *.pch
@@ -353,3 +354,8 @@ healthchecksdb
 MigrationBackup/
 
 # End of https://www.gitignore.io/api/csharp
+.idea/
+apt/
+.apt/
+work/.debs/
+work/rootfs/
