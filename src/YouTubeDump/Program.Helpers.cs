@@ -29,6 +29,19 @@ namespace YouTubeDump
                 IndexDirectory = Path.GetFullPath(IndexDirectory);
                 Log.Logger.Information("Output dump to {directory}...", IndexDirectory);
             }
+
+            public YouTubeDumpChannelIndex GetIndex()
+            {
+                var indexPath = Path.Combine(IndexDirectory, "index.json");
+
+                if (!File.Exists(indexPath))
+                {
+                    Log.Logger.Error("The index.json file doesn't exist. Run \"index\" first.");
+                    Environment.Exit(1);
+                }
+
+                return JsonConvert.DeserializeObject<YouTubeDumpChannelIndex>(File.ReadAllText(indexPath));
+            }
         }
         
         private static string GetRequestBody(string url)
