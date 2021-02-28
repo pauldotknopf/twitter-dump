@@ -124,7 +124,7 @@ namespace TwitterDump
 
                 var responseContent = RetryGet(http, url);
                 
-                var dateTimeConverter = new IsoDateTimeConverter { DateTimeFormat = "ddd MMM dd HH:mm:ss zzzz yyyy" };
+                var dateTimeConverter = new IsoDateTimeConverter { DateTimeFormat = "ddd MMM dd HH:mm:ss zzzz yyyy", Culture = System.Globalization.CultureInfo.InvariantCulture };
                 var deserializeSettings = new JsonSerializerSettings();
                 deserializeSettings.Converters.Add(dateTimeConverter);
                 var json = JsonConvert.DeserializeObject<dynamic>(responseContent);
