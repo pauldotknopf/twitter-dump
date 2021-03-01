@@ -221,7 +221,7 @@ namespace TwitterDump
                             }
                         }
 
-                        Log.Logger.Warning("Request exception {0} {1}, retrying...", response.StatusCode, responseContent);
+                        Log.Logger.Warning("Request exception {statusCode} {body}, retrying...", response.StatusCode, responseContent);
                         return null;
                     }
 
@@ -229,7 +229,7 @@ namespace TwitterDump
                 }
                 catch(Exception e)
                 {
-                    Log.Logger.Warning("Exception {0}, retrying...", e.Message);
+                    Log.Logger.Warning("Exception {message}, retrying...", e.Message);
                     return null;
                 }
             }
