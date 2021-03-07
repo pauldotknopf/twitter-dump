@@ -124,7 +124,7 @@ namespace TwitterDump
 
                 var responseContent = RetryGet(http, url);
                 
-                var dateTimeConverter = new IsoDateTimeConverter { DateTimeFormat = "ddd MMM dd HH:mm:ss zzzz yyyy" };
+                var dateTimeConverter = new IsoDateTimeConverter { DateTimeFormat = "ddd MMM dd HH:mm:ss zzzz yyyy", Culture = System.Globalization.CultureInfo.InvariantCulture };
                 var deserializeSettings = new JsonSerializerSettings();
                 deserializeSettings.Converters.Add(dateTimeConverter);
                 var json = JsonConvert.DeserializeObject<dynamic>(responseContent);
@@ -202,27 +202,36 @@ namespace TwitterDump
         {
             string MakeRequest()
             {
-                var response = client.GetAsync(url).GetAwaiter()
-                    .GetResult();
-                var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    // {"errors":[{"message":"Over capacity","code":130}]}
-                    if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+                    var response = client.GetAsync(url).GetAwaiter()
+                        .GetResult();
+                    var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    if (!response.IsSuccessStatusCode)
                     {
-                        // This may be a result of "Over capacity, if it is, return NULL.
-                        var json = JsonConvert.DeserializeObject<List<dynamic>>(responseContent);
-                        if (json.Count == 1 && json[0].message != null & json[0].message == "Over capacity")
+                        // {"errors":[{"message":"Over capacity","code":130}]}
+                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
                         {
-                            return null;
+                            // This may be a result of "Over capacity, if it is, return NULL.
+                            var json = JsonConvert.DeserializeObject<List<dynamic>>(responseContent);
+                            if (json.Count == 1 && json[0].message != null & json[0].message == "Over capacity")
+                            {
+                                Log.Logger.Warning("Over capacity, retrying...");
+                                return null;
+                            }
                         }
-                    }
-                    
-                    Log.Logger.Error("Request exception {statusCode} {body}", response.StatusCode, responseContent);
-                    Environment.Exit(1);
-                }
 
-                return responseContent;
+                        Log.Logger.Warning("Request exception {statusCode} {body}, retrying...", response.StatusCode, responseContent);
+                        return null;
+                    }
+
+                    return responseContent;
+                }
+                catch(Exception e)
+                {
+                    Log.Logger.Warning("Exception {message}, retrying...", e.Message);
+                    return null;
+                }
             }
 
             var count = 0;
@@ -232,7 +241,6 @@ namespace TwitterDump
 
                 if (content == null)
                 {
-                    Log.Logger.Warning("Over capacity, retrying...");
                     Thread.Sleep(1000);
                 }
                 else
@@ -243,7 +251,7 @@ namespace TwitterDump
                 count++;
             }
             
-            Log.Logger.Warning("Too many retries, failed connection!");
+            Log.Logger.Error("Too many retries, failed connection!");
             Environment.Exit(1);
             
             return null;
