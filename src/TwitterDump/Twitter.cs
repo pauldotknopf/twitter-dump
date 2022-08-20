@@ -113,9 +113,13 @@ namespace TwitterDump
             nextCursor = null;
             string cursor = null;
             var hasEntries = false;
-            
-            
-            using (var http = new HttpClient())
+
+            HttpClientHandler handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.All
+            };
+
+            using (var http = new HttpClient(handler))
             {
                 foreach (var header in headers)
                 {
