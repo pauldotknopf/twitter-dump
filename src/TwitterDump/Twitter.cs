@@ -211,6 +211,13 @@ namespace TwitterDump
                     var response = client.GetAsync(url).GetAwaiter()
                         .GetResult();
                     var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                    string retryAfterTime = response.Headers.TryGetValues("Retry-After", out var values) ? values.FirstOrDefault() : null;
+                    if (retryAfterTime != null)
+                    {
+                        Log.Logger.Information("Sleeping for {retryAfterTime} seconds", retryAfterTime);
+                        System.Threading.Thread.Sleep(int.Parse(retryAfterTime));
+                    }
                     if (!response.IsSuccessStatusCode)
                     {
                         // {"errors":[{"message":"Over capacity","code":130}]}
