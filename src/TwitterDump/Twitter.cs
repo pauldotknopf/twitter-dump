@@ -212,11 +212,12 @@ namespace TwitterDump
                         .GetResult();
                     var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                    string retryAfterTime = response.Headers.TryGetValues("Retry-After", out var values) ? values.FirstOrDefault() : null;
+                    string retryAfterTime = response.Headers.TryGetValues("x-rate-limit-limit", out var values) ? values.FirstOrDefault() : null;
+   
                     if (retryAfterTime != null)
                     {
                         Log.Logger.Information("Sleeping for {retryAfterTime} seconds", retryAfterTime);
-                        System.Threading.Thread.Sleep(int.Parse(retryAfterTime));
+                        Thread.Sleep(int.Parse(retryAfterTime) * 1000);
                     }
                     if (!response.IsSuccessStatusCode)
                     {
