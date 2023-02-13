@@ -104,11 +104,15 @@ namespace TwitterDump
             steps.AppendLine("Step 6: Scroll down until a network request for \"adapative.json\" is made");
             steps.AppendLine("Step 7: Right click the request and click \"Copy -> Copy as cURL\"");
             steps.Append("Step 8: Paste the contents of your clipboard below");
+            steps.Append("Step 9: Press Enter and then Ctrl-Z");
             Console.WriteLine(steps);
             
             Console.Out.Write("Result: ");
-            var curlCommand = Console.In.ReadLine();
-
+            Console.SetIn(new StreamReader(Console.OpenStandardInput(),
+                Console.InputEncoding,
+                false,
+                bufferSize: 4096));
+            var curlCommand = Console.In.ReadToEnd();//.ReadLine();
             Dictionary<string, string> headers;
             while (!ParseCurlCommand(curlCommand, out headers))
             {

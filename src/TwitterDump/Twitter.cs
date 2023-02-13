@@ -202,6 +202,10 @@ namespace TwitterDump
             }
         }
 
+        private static int rateRemaining = int.MaxValue;
+        //private static int rateLimitLimit = int.MaxValue;
+        private static DateTime resetTime = DateTime.UtcNow;
+
         private static string RetryGet(HttpClient client, string url)
         {
             string MakeRequest()
@@ -211,14 +215,32 @@ namespace TwitterDump
                     var response = client.GetAsync(url).GetAwaiter()
                         .GetResult();
                     var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    var responseHeaders = response.Headers;
+                    //string limitLimit = response.Headers.
+                    //    FirstOrDefault(x => x.Key == "x-rate-limit-limit")
+                    //    .Value
+                    //    ?.FirstOrDefault();
+                    string limitRemaining = response.Headers
+                        .FirstOrDefault(x => x.Key == "x-rate-limit-remaining")
+                        .Value
+                        ?.FirstOrDefault();
+                    string limitReset = response.Headers
+                        .FirstOrDefault(x => x.Key == "x-rate-limit-reset")
+                        .Value
+                        ?.FirstOrDefault();
 
-                    string retryAfterTime = response.Headers.TryGetValues("x-rate-limit-limit", out var values) ? values.FirstOrDefault() : null;
-   
-                    if (retryAfterTime != null)
+                    //if (limitLimit != null)
+                    //    int.TryParse(limitLimit, out rateLimitLimit);
+                    if (limitRemaining != null)
+                        int.TryParse(limitRemaining, out rateRemaining);
+                    if (limitReset != null)
                     {
-                        Log.Logger.Information("Sleeping for {retryAfterTime} seconds", retryAfterTime);
-                        Thread.Sleep(int.Parse(retryAfterTime) * 1000);
+                        long utcdt = 0;
+                        if (long.TryParse(limitReset, out utcdt))
+                            resetTime = DateTimeOffset.FromUnixTimeSeconds(utcdt).DateTime;
                     }
+                        
+
                     if (!response.IsSuccessStatusCode)
                     {
                         // {"errors":[{"message":"Over capacity","code":130}]}
@@ -246,20 +268,27 @@ namespace TwitterDump
                 }
             }
 
+            string result = null;
             var count = 0;
-            while (count < 10)
-            {
-                var content = MakeRequest();
 
-                if (content == null)
+            while (count < 2)
+            {
+                if (rateRemaining > 0 || resetTime <= DateTime.Now.ToUniversalTime())
                 {
-                    Thread.Sleep(1000);
+                    result = MakeRequest();
+                    if (result != null)
+                        return result;
                 }
                 else
                 {
-                    return content;
+                    Log.Logger.Error($"Waiting till {resetTime}(local time)");
+                    while (resetTime > DateTime.Now.ToUniversalTime())
+                    {
+                        Thread.Sleep(5000);
+                    }
+                    Log.Logger.Error($"Continue downloading");
+                    continue;
                 }
-                
                 count++;
             }
             
